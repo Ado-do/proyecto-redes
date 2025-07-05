@@ -93,6 +93,7 @@ int main() {
         if (SSL_connect(ssl) <= 0) {
             throw runtime_error("SSL handshake failed");
         }
+        cout << "Using cipher: " << SSL_get_cipher(ssl) << endl;
 
         // Verify server certificate
         if (SSL_get_verify_result(ssl) != X509_V_OK) {

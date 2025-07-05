@@ -119,6 +119,10 @@ def run_server():
             while True:
                 conn, addr = s.accept()
                 try:
+                    context.post_handshake_auth = True
+                    context.verify_mode = ssl.CERT_REQUIRED
+                    # print("Supported ciphers:", context.get_ciphers())
+
                     # Wrap the socket with TLS
                     tls_conn = context.wrap_socket(conn, server_side=True)
                     logger.info(f"TLS connection established with {addr}")
