@@ -7,7 +7,7 @@ Sistema distribuido IoT para monitoreo industrial con clientes C++, servidores P
 
 ### Requerimientos
 
-- Compilador CPP (GCC/Clang)
-- CMake
+- Compilador C++ (GNU g++)
+- Make
 - Python 3.9+
 - Librería OpenSSL
