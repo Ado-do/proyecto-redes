@@ -8,12 +8,14 @@
 #include <unistd.h>
 
 using namespace std;
+namespace fs = std::filesystem;
 
-string certs_path = filesystem::current_path().string() + "/certs/";
-const string ip = "127.0.0.1";
-const int port = 8080;
+// Configuration
+const fs::path CERTS_PATH = fs::current_path() / "certs";
+const string IP = "127.0.0.1";
+const int PORT = 8080;
 
-// Host float to Network float (convert from host byte order to network byte order)
+// Host to network float bit order
 float htonf(float host_float) {
     uint32_t temp;
     memcpy(&temp, &host_float, sizeof(host_float));
@@ -22,7 +24,7 @@ float htonf(float host_float) {
     return host_float;
 }
 
-// Convert Host SensorData to Network SensorData (little to big-endian)
+// Host to network SensorData bit order
 void hsdtonsd(SensorData &sd) {
     sd.id = htons(sd.id);
     sd.humidity = htonf(sd.humidity);
@@ -30,108 +32,96 @@ void hsdtonsd(SensorData &sd) {
     sd.temperature = htonf(sd.temperature);
 }
 
-SSL_CTX *create_ssl_context() {
-    const SSL_METHOD *method = TLS_client_method();
-    SSL_CTX *ctx = SSL_CTX_new(method);
+SSL_CTX *init_ssl() {
+    SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
     if (!ctx) {
-        perror("Unable to create SSL context");
+        cerr << "SSL context creation failed\n";
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }
+
+    // Load certificates
+    if (!SSL_CTX_load_verify_locations(ctx, (CERTS_PATH / "ca/ca.crt").c_str(), nullptr) ||
+        !SSL_CTX_use_certificate_file(ctx, (CERTS_PATH / "client/client.crt").c_str(), SSL_FILETYPE_PEM) ||
+        !SSL_CTX_use_PrivateKey_file(ctx, (CERTS_PATH / "client/client.key").c_str(), SSL_FILETYPE_PEM) ||
+        !SSL_CTX_check_private_key(ctx)) {
+        cerr << "Certificate setup failed\n";
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+
     return ctx;
 }
 
-void configure_context(SSL_CTX *ctx) {
-    // Load CA certificate
-    if (!SSL_CTX_load_verify_locations(ctx, (certs_path + "ca/ca.crt").c_str(), NULL)) {
-        ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+void cleanup(int sock, SSL_CTX *ctx, SSL *ssl) {
+    if (ssl) {
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
     }
-
-    // Load client certificate and key
-    if (SSL_CTX_use_certificate_file(ctx, (certs_path + "client/client.crt").c_str(), SSL_FILETYPE_PEM) <= 0) {
-        ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
-    }
-
-    if (SSL_CTX_use_PrivateKey_file(ctx, (certs_path + "client/client.key").c_str(), SSL_FILETYPE_PEM) <= 0) {
-        ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
-    }
-
-    // Verify private key matches certificate
-    if (!SSL_CTX_check_private_key(ctx)) {
-        cerr << "Private key does not match the certificate public key\n";
-        exit(EXIT_FAILURE);
-    }
+    if (sock != -1)
+        close(sock);
+    SSL_CTX_free(ctx);
 }
 
 int main() {
-    // Init OpenSSL
+    // Initialize SSL
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    // Create SSL context
-    SSL_CTX *ctx = create_ssl_context();
-    configure_context(ctx);
+    SSL_CTX *ctx = init_ssl();
+    int sock = -1;
+    SSL *ssl = nullptr;
 
-    // Create TCP socket
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return 1;
-    }
-    sockaddr_in serv_addr = {.sin_family = AF_INET, .sin_port = htons(port)};
-    inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr);
+    try {
+        // Create TCP connection
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0)
+            throw runtime_error("Socket creation failed");
 
-    // Connect to server using TCP socket
-    if (connect(sock, (sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
-        perror("Failed connection");
-        close(sock);
-        return 0;
-    }
+        sockaddr_in serv_addr = {.sin_family = AF_INET, .sin_port = htons(PORT)};
+        inet_pton(AF_INET, IP.c_str(), &serv_addr.sin_addr);
 
-    // Create SSL connection
-    SSL *ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, sock);
+        if (connect(sock, (sockaddr *)&serv_addr, sizeof(serv_addr))) {
+            throw runtime_error("Connection failed");
+        }
 
-    int ret = SSL_connect(ssl);
-    if (ret <= 0) {
-        SSL_get_error(ssl, ret);
+        // Create SSL connection
+        ssl = SSL_new(ctx);
+        SSL_set_fd(ssl, sock);
+
+        if (SSL_connect(ssl) <= 0) {
+            throw runtime_error("SSL handshake failed");
+        }
+
+        // Verify server certificate
+        if (SSL_get_verify_result(ssl) != X509_V_OK) {
+            throw runtime_error("Certificate verification failed");
+        }
+
+        // Send sensor data
+        SensorData data = create_fake_sensor_data();
+        data.print_data();
+        hsdtonsd(data);
+
+        if (SSL_write(ssl, &data, sizeof(data)) <= 0) {
+            throw runtime_error("Data send failed");
+        }
+
+        // Get response
+        char response[4];
+        int bytes = SSL_read(ssl, response, sizeof(response));
+        if (bytes > 0) {
+            cout << "Server response: " << string(response, bytes) << endl;
+        }
+
+    } catch (const exception &e) {
+        cerr << "Error: " << e.what() << endl;
         ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        close(sock);
-        return 0;
-    } else {
-        cout << "SSL/TLS connection established\n";
+        cleanup(sock, ctx, ssl);
+        return EXIT_FAILURE;
     }
 
-    // Create fake sensor data
-    SensorData data = create_fake_sensor_data();
-    static_assert(sizeof(SensorData) == 14, "SensorData size mismatch!");
-    data.print_data();
-
-    // Convert to network bit order and send
-    hsdtonsd(data);
-    // int bytes_sent = send(sock, &data, sizeof(data), 0);
-    int bytes_sent = SSL_write(ssl, &data, sizeof(data));
-    cout << "Bytes sent: " << bytes_sent << endl;
-
-    // Receive server response to data
-    char response[4];
-    int bytes_received = SSL_read(ssl, response, sizeof(response));
-    if (bytes_received < 0) {
-        perror("Receive error");
-    } else {
-        cout << "Server answer: " << string(response, bytes_received) << endl;
-    }
-
-    // Cleanup
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-    close(sock);
-    SSL_CTX_free(ctx);
-
-    return 0;
+    cleanup(sock, ctx, ssl);
+    return EXIT_SUCCESS;
 }
