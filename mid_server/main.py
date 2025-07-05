@@ -1,3 +1,5 @@
+import os
+import ssl
 import socket
 import struct
 from datetime import datetime, timezone
@@ -9,6 +11,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants
+CERTS_PATH = os.path.join("certs", "")  # Ensures trailing slash
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8080
+BUFFER_SIZE = 14
+ACK = b"ACK"
+ERR = b"ERR"
 
 def parse_sensor_data(data: bytes) -> dict:
     """Parse binary sensor data validation."""
@@ -61,8 +70,8 @@ def handle_client(conn: socket.socket, addr: tuple):
         try:
             # Receive exactly 14 bytes (2 + 4*3)
             data = b""
-            while len(data) < 14:
-                chunk = conn.recv(14 - len(data))
+            while len(data) < BUFFER_SIZE:
+                chunk = conn.recv(BUFFER_SIZE - len(data))
                 if not chunk:
                     logger.warning("Connection closed prematurely")
                     return
@@ -73,46 +82,55 @@ def handle_client(conn: socket.socket, addr: tuple):
             logger.info(f"Received valid data: {sensor_data}")
 
             # Send response
-            response = b"ACK" if verify_data(sensor_data) else b"ERR"
+            response = ACK if verify_data(sensor_data) else ERR
             conn.sendall(response)
             logger.debug(f"Sent response: {response.decode()}")
 
         except (ValueError, struct.error) as e:
             logger.error(f"Data processing error: {e}")
-            conn.sendall(b"ERR")
+            conn.sendall(ERR)
         except socket.error as e:
             logger.error(f"Socket error: {e}")
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
-            conn.sendall(b"ERR")
+            conn.sendall(ERR)
 
 
 def run_server():
     """Run the TCP server indefinitely."""
+
+    # Create SSL context
+    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    context.load_cert_chain(certfile= CERTS_PATH + "server/server.crt", 
+                            keyfile= CERTS_PATH + "server/server.key")
+    context.load_verify_locations(cafile=os.path.join(CERTS_PATH, "ca", "ca.crt"))
+    context.verify_mode = ssl.CERT_REQUIRED  # Require client certificate
+
     # Init TCP socket with IPv4
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # For quickly restart server without waiting a previous socket to fully close
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # ip_addr = "0.0.0.0"
-        ip_addr = "127.0.0.1"
-        port = 8080
-
-        s.bind((ip_addr, port))
+        s.bind((SERVER_HOST, SERVER_PORT))
         s.listen(5) # backlog of 5
-        logger.info(f"Server started on {ip_addr}:{port}")
+        logger.info(f"Server started on {SERVER_HOST}:{SERVER_PORT}")
 
         try:
             while True:
                 conn, addr = s.accept()
-                handle_client(conn, addr)
+                try:
+                    # Wrap the socket with TLS
+                    tls_conn = context.wrap_socket(conn, server_side=True)
+                    logger.info(f"TLS connection established with {addr}")
+                    handle_client(tls_conn, addr)
+                except ssl.SSLError as e:
+                    logger.error(f"SSL error: {e}")
+                    conn.close()
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}")
+                    conn.close()
         except KeyboardInterrupt:
             logger.info("Server shutting down...")
-        except Exception as e:
-            logger.error(f"Server error: {e}")
-        finally:
-            logger.info("Server stopped")
-
 
 if __name__ == "__main__":
     run_server()

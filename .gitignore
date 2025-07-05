@@ -1,5 +1,16 @@
+# My files
 TODO.md
+
+# Python
+*.venv
 venv*
 __pycache__
 *.db
+
+# CPP
 client/build/
+
+# Certificate and key files
+*.crt
+*.key
+**/certs/
