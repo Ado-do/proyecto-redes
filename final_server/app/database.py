@@ -12,6 +12,7 @@ def get_db():
     try:
         yield conn
     finally:
+        conn.commit()
         conn.close()
 
 
@@ -46,3 +47,5 @@ def insert_reading(data: dict):
                 data["humidity"],
             ),
         )
+        conn.commit()  # Force immediate write
+    # print(f"Inserted: {data}")  # Debug log

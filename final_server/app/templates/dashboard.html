@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Sensor Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .chart {
+        width: 100%;
+        height: 400px;
+        margin-bottom: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Industrial Sensor Dashboard</h1>
+
+    <div id="temperatureChart" class="chart"></div>
+    <div id="pressureChart" class="chart"></div>
+    <div id="humidityChart" class="chart"></div>
+
+    <script>
+      async function fetchData() {
+        const response = await fetch("/api/readings?limit=50");
+        return await response.json();
+      }
+
+      function updateCharts() {
+        fetchData().then((data) => {
+          const timestamps = data.map((r) => r.timestamp);
+
+          // Temperature Chart
+          Plotly.newPlot(
+            "temperatureChart",
+            [
+              {
+                x: timestamps,
+                y: data.map((r) => r.temperature),
+                mode: "lines+markers",
+                name: "Temperature (°C)",
+              },
+            ],
+            { title: "Temperature Trend" },
+          );
+
+          // Pressure Chart
+          Plotly.newPlot(
+            "pressureChart",
+            [
+              {
+                x: timestamps,
+                y: data.map((r) => r.pressure),
+                mode: "lines+markers",
+                name: "Pressure (hPa)",
+              },
+            ],
+            { title: "Pressure Trend" },
+          );
+
+          // Humidity Chart
+          Plotly.newPlot(
+            "humidityChart",
+            [
+              {
+                x: timestamps,
+                y: data.map((r) => r.humidity),
+                mode: "lines+markers",
+                name: "Humidity (%)",
+              },
+            ],
+            { title: "Humidity Trend" },
+          );
+        });
+      }
+
+      // Initial load
+      updateCharts();
+
+      // Update every 5 seconds
+      setInterval(updateCharts, 5000);
+    </script>
+  </body>
+</html>
