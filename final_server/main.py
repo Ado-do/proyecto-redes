@@ -1,14 +1,21 @@
-# Después de parse_sensor_data
-def verify_data(data: dict) -> bool:
-    # Simula verificación (luego implementarás cifrado real)
-    return all([
-        -50 <= data["temperatura"] <= 150,
-        300 <= data["presion"] <= 1200,
-        0 <= data["humedad"] <= 100
-    ])
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from .app.database import init_db
+from .app.api import router
 
-# Modifica el bloque principal:
-if verify_data(sensor_data):
-    conn.sendall(b"ACK")  # Confirmación
-else:
-    conn.sendall(b"ERR")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize on startup
+    init_db()
+    print("✅ Database initialized")
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(router, prefix="/api")
+
+
+@app.get("/")
+async def root():
+    return {"message": "Sensor Data Server"}

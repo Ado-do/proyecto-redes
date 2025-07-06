@@ -69,6 +69,15 @@ int main() {
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
+    // Verify cert paths
+    if (!fs::exists(CERTS_PATH / "ca/ca.crt") || 
+        !fs::exists(CERTS_PATH / "client/client.crt") ||
+        !fs::exists(CERTS_PATH / "client/client.key")) {
+        cerr << "Missing certificate files!\n";
+        return EXIT_FAILURE;
+    }
+
+    // Init SSL Context
     SSL_CTX *ctx = init_ssl();
     int sock = -1;
     SSL *ssl = nullptr;

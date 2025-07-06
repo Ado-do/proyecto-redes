@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from database import DATABASE_PATH
 import sqlite3
 
 app = FastAPI()
@@ -13,7 +14,7 @@ class SensorData(BaseModel):
 
 @app.post("/data")
 async def save_data(data: SensorData):
-    conn = sqlite3.connect("industrial.db")
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute(
         """INSERT INTO sensor_data 

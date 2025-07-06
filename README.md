@@ -8,6 +8,7 @@ Sistema distribuido IoT para monitoreo industrial con clientes C++, servidores P
 ### Requerimientos
 
 - Compilador C++ (GNU g++)
+  - Librería OpenSSL
 - Make
 - Python 3.9+
-- Librería OpenSSL
+  - Librerias: ``pip install fastapi uvicorn sqlite requests plotly``
