@@ -1,70 +1,56 @@
 import struct
 import requests
+import json
 from datetime import datetime, timezone
 import logging
+import crcmod
 
 
 class DataHandler:
     def __init__(self, server_url):
         self.server_url = server_url
         self.logger = logging.getLogger("DataHandler")
+        self.crc16 = crcmod.predefined.mkPredefinedCrcFun("modbus")  # MODBUS polynomial
 
+    # TODO: FIX THIS WEA
     def parse_sensor_data(self, raw_data: bytes) -> dict:
-        """Parse binary data into dictionary"""
+        """Parse binary data into dictionary and verify checksum"""
         try:
-            sensor_id, temp, pressure, humidity = struct.unpack("!hfff", raw_data)
+            # Unpack binary data (16 bytes: 2+4+4+4+2)
+            sensor_id, temp, press, hum, received_checksum = struct.unpack("!hiiiH", raw_data)
+            self.logger.debug(f"Received SensorData = {{sensor_id = {sensor_id}, temp = {temp}, pressure = {press}, humidity = {hum}, received_checksum = {received_checksum}}}")
+
+            # Verify checksum
+            computed_checksum = self.crc16(raw_data[:-2])
+            if computed_checksum != received_checksum:
+                self.logger.error(f"Checksum mismatch! Received: {received_checksum}, Computed: {computed_checksum}")
+                raise ValueError("Checksum verification failed")
+
             return {
                 "id": sensor_id,
-                "temperature": round(temp, 2),
-                "pressure": round(pressure, 2),
-                "humidity": round(humidity, 2),
+                # "id": socket.ntohs(sensor_id),  # Convert to host byte order
+                "temperature": temp / 100.0,
+                "pressure": press / 100.0,
+                "humidity": hum / 100.0,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         except struct.error as e:
             self.logger.error(f"Data parsing failed: {e}")
             raise ValueError("Invalid sensor data format")
 
-    def validate_data(self, data: dict) -> bool:
-        """Check physical limits"""
-        try:
-            return all(
-                [
-                    -50 <= data["temperature"] <= 150,
-                    300 <= data["pressure"] <= 1200,
-                    0 <= data["humidity"] <= 100,
-                ]
-            )
-        except KeyError as e:
-            self.logger.error(f"Missing sensor field: {e}")
-            return False
-
     def forward_data(self, data: dict) -> bool:
-        """Send data to final server with detailed error handling"""
+        """Convert data to JSON text and forward to final server"""
         try:
-            self.logger.debug(f"Attempting to forward data: {data}")
+            json_data = json.dumps(data)  # Explicit textual conversion (UTF-8 JSON)
+            self.logger.debug(f"Forwarding JSON: {json_data}")
 
             response = requests.post(
                 self.server_url,
-                json=data,
+                data=json_data,
                 timeout=3,
                 headers={"Content-Type": "application/json"},
             )
-
-            if response.status_code == 200:
-                self.logger.info(
-                    f"Successfully forwarded data from sensor {data['id']}"
-                )
-                return True
-            else:
-                self.logger.error(
-                    f"Forwarding failed with status {response.status_code}. "
-                    f"Response: {response.text}"
-                )
-                return False
-
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Network error during forwarding: {str(e)}")
-            return False
+            return response.status_code == 200
         except Exception as e:
-            self.logger.error(f"Unexpected forwarding error: {str(e)}")
+            self.logger.error(f"Forwarding error: {e}")
             return False

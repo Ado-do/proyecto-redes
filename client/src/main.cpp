@@ -30,9 +30,10 @@ void hsdtonsd(SensorData &sd) {
     sd.humidity = htonf(sd.humidity);
     sd.pressure = htonf(sd.pressure);
     sd.temperature = htonf(sd.temperature);
+    sd.checksum = htons(sd.checksum);
 }
 
-SSL_CTX *init_ssl() {
+SSL_CTX *init_ssl_context() {
     SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
     if (!ctx) {
         cerr << "SSL context creation failed\n";
@@ -78,7 +79,7 @@ int main() {
     }
 
     // Init SSL Context
-    SSL_CTX *ctx = init_ssl();
+    SSL_CTX *ctx = init_ssl_context();
     int sock = -1;
     SSL *ssl = nullptr;
 

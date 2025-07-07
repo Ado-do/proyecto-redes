@@ -15,7 +15,7 @@ def main():
     CERTS_PATH = "certs"
     FINAL_SERVER_URL = "http://localhost:8000/api/data"
 
-    # Init comps
+    # Init components
     data_handler = DataHandler(FINAL_SERVER_URL)
     server = TLSServer(SERVER_HOST, SERVER_PORT, CERTS_PATH)
 

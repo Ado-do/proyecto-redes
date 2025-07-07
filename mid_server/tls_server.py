@@ -3,6 +3,8 @@ import socket
 import logging
 from typing import Tuple
 
+BUFFER_SIZE = 16  # 2+4+4+4+2
+
 
 class TLSServer:
     def __init__(self, host: str, port: int, certs_path: str):
@@ -28,7 +30,7 @@ class TLSServer:
             self.logger.info(f"Connection from {addr[0]}")
 
             try:
-                data = conn.recv(14)  # 14 bytes
+                data = conn.recv(BUFFER_SIZE)
                 if not data:
                     return
 

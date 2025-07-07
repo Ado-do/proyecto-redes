@@ -2,14 +2,16 @@
 
 #include <cstdint>
 
+// temperature, pressure, humidity are float casted to ints * 100
 struct SensorData {
     int16_t id;
-    float temperature;
-    float pressure;
-    float humidity;
+    int32_t temperature;
+    int32_t pressure;
+    int32_t humidity;
+    uint16_t checksum;
 
     void print_data();
-} __attribute__((packed)); // Disable padding (14 bytes)
+} __attribute__((packed)); // Disable padding
 
-// Create random fake sensor data
 SensorData create_fake_sensor_data();
+uint16_t compute_checksum(const SensorData& data);

@@ -11,9 +11,11 @@ void SensorData::print_data() {
          << "'id': " << id << ", "
          << "'temperature': " << temperature << ", "
          << "'pressure': " << pressure << ", "
-         << "'humidity': " << humidity << "}"
+         << "'humidity': " << humidity << ", "
+         << "'checksum': " << (uint16_t)checksum << "}"
          << endl;
 }
+
 
 // Create random fake sensor data
 SensorData create_fake_sensor_data() {
@@ -25,8 +27,34 @@ SensorData create_fake_sensor_data() {
     uniform_real_distribution<float> press_distr(300, 1200);
     uniform_real_distribution<float> hum_distr(0, 100);
 
-    SensorData sd{id++, temp_distr(gen), press_distr(gen), hum_distr(gen)};
+    SensorData sd = {
+        id++,
+        static_cast<int32_t>(temp_distr(gen) * 100),
+        static_cast<int32_t>(press_distr(gen) * 100),
+        static_cast<int32_t>(hum_distr(gen) * 100),
+    };
+    sd.checksum = compute_checksum(sd);
+
     return sd;
 }
 
+// Simple CRC-16 checksum TODO: FIX THIS WEA
+uint16_t compute_checksum(const SensorData& data) {
+    // polynomial commonly used in CRC-16 checksum
+    const uint16_t crc_16_polynomial = 0xA001; // x^16 + x^15 + x^2 + 1
 
+    // treat data as sequence of bits
+    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&data);
+    uint16_t crc = 0xFFFF;
+
+    // iterate bits of data, without the last two bits (checksum field)
+    // for (size_t i = 0; i < sizeof(data) - sizeof(data.checksum); i++) { // More readable
+    for (size_t i = 0; i < sizeof(SensorData) - sizeof(uint16_t); i++) {
+        crc ^= bytes[i];
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x0001) crc = (crc >> 1) ^ crc_16_polynomial;
+            else              crc >>= 1;
+        }
+    }
+    return crc;
+}
