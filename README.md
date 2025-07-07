@@ -27,7 +27,7 @@ make -C client/
 # Ejecutar servidor medio
 python ./mid_server/main.py
 
-# Ejecutar servidor final
+# Ejecutar servidor final (http://localhost:8000/api/dashboard)
 uvicorn final_server.main:app
 
 # Ejecutar cliente de consulta
