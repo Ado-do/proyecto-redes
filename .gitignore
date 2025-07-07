@@ -2,10 +2,9 @@
 TODO.md
 
 # Python
-*.venv
+__pycache__/
+*.venv/
 venv*
-__pycache__
-*.db
 
 # CPP
 client/build/
@@ -14,3 +13,6 @@ client/build/
 *.crt
 *.key
 **/certs/
+
+# SQL
+*.db

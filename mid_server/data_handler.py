@@ -1,5 +1,4 @@
 import struct
-import socket
 import requests
 import json
 from datetime import datetime, timezone
@@ -8,13 +7,14 @@ import logging
 
 def compute_checksum(data: bytes) -> int:
     crc = 0xFFFF
+    poly = 0xA001
     for byte in data:
         crc ^= byte
         for _ in range(8):
             lsb = crc & 0x0001
             crc >>= 1
             if lsb:
-                crc ^= 0xA001
+                crc ^= poly
     return crc
 
 
@@ -39,7 +39,7 @@ class DataHandler:
                 self.logger.error(f"Checksum mismatch! Received: {received_checksum}, Computed: {computed_checksum}")
                 raise ValueError("Checksum verification failed")
             else:
-                self.logger.info("Checksum verification successful")
+                self.logger.info("Checksum verification successfuly!")
 
             return {
                 "id": sensor_id,
