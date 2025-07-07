@@ -35,12 +35,8 @@ class TLSServer:
                     return
 
                 sensor_data = data_handler.parse_sensor_data(data)
-                print(sensor_data)
-                if data_handler.validate_data(sensor_data):
-                    if data_handler.forward_data(sensor_data):
-                        conn.sendall(b"ACK")
-                    else:
-                        conn.sendall(b"ERR")
+                if data_handler.forward_data(sensor_data):
+                    conn.sendall(b"ACK")
                 else:
                     conn.sendall(b"ERR")
 

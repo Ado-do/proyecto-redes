@@ -40,9 +40,6 @@ SensorData create_fake_sensor_data() {
 
 // Simple CRC-16 checksum TODO: FIX THIS WEA
 uint16_t compute_checksum(const SensorData& data) {
-    // polynomial commonly used in CRC-16 checksum
-    const uint16_t crc_16_polynomial = 0xA001; // x^16 + x^15 + x^2 + 1
-
     // treat data as sequence of bits
     const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&data);
     uint16_t crc = 0xFFFF;
@@ -52,8 +49,9 @@ uint16_t compute_checksum(const SensorData& data) {
     for (size_t i = 0; i < sizeof(SensorData) - sizeof(uint16_t); i++) {
         crc ^= bytes[i];
         for (int j = 0; j < 8; j++) {
-            if (crc & 0x0001) crc = (crc >> 1) ^ crc_16_polynomial;
-            else              crc >>= 1;
+            bool lsb = crc & 0x0001;
+            crc >>= 1;
+            if (lsb) crc ^= 0xA001;
         }
     }
     return crc;

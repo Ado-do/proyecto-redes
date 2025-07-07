@@ -15,21 +15,12 @@ const fs::path CERTS_PATH = fs::current_path() / "certs";
 const string IP = "127.0.0.1";
 const int PORT = 8080;
 
-// Host to network float bit order
-float htonf(float host_float) {
-    uint32_t temp;
-    memcpy(&temp, &host_float, sizeof(host_float));
-    temp = htonl(temp);
-    memcpy(&host_float, &temp, sizeof(host_float));
-    return host_float;
-}
-
 // Host to network SensorData bit order
 void hsdtonsd(SensorData &sd) {
     sd.id = htons(sd.id);
-    sd.humidity = htonf(sd.humidity);
-    sd.pressure = htonf(sd.pressure);
-    sd.temperature = htonf(sd.temperature);
+    sd.humidity = htonl(sd.humidity);
+    sd.pressure = htonl(sd.pressure);
+    sd.temperature = htonl(sd.temperature);
     sd.checksum = htons(sd.checksum);
 }
 

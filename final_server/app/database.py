@@ -47,5 +47,4 @@ def insert_reading(data: dict):
                 data["humidity"],
             ),
         )
-        conn.commit()  # Force immediate write
-    # print(f"Inserted: {data}")  # Debug log
+        conn.commit()

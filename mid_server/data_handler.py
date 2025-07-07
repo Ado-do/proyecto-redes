@@ -1,34 +1,48 @@
 import struct
+import socket
 import requests
 import json
 from datetime import datetime, timezone
 import logging
-import crcmod
+
+
+def compute_checksum(data: bytes) -> int:
+    crc = 0xFFFF
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            lsb = crc & 0x0001
+            crc >>= 1
+            if lsb:
+                crc ^= 0xA001
+    return crc
 
 
 class DataHandler:
     def __init__(self, server_url):
         self.server_url = server_url
         self.logger = logging.getLogger("DataHandler")
-        self.crc16 = crcmod.predefined.mkPredefinedCrcFun("modbus")  # MODBUS polynomial
 
-    # TODO: FIX THIS WEA
     def parse_sensor_data(self, raw_data: bytes) -> dict:
         """Parse binary data into dictionary and verify checksum"""
         try:
             # Unpack binary data (16 bytes: 2+4+4+4+2)
             sensor_id, temp, press, hum, received_checksum = struct.unpack("!hiiiH", raw_data)
-            self.logger.debug(f"Received SensorData = {{sensor_id = {sensor_id}, temp = {temp}, pressure = {press}, humidity = {hum}, received_checksum = {received_checksum}}}")
+            self.logger.debug(
+                f"Received SensorData = {{sensor_id = {sensor_id}, temp = {temp}, pressure = {press}, humidity = {hum}, received_checksum = {received_checksum}}}"
+            )
 
             # Verify checksum
-            computed_checksum = self.crc16(raw_data[:-2])
+            host_order_raw_data = struct.pack("=hiii", sensor_id, temp, press, hum)
+            computed_checksum = compute_checksum(host_order_raw_data)
             if computed_checksum != received_checksum:
                 self.logger.error(f"Checksum mismatch! Received: {received_checksum}, Computed: {computed_checksum}")
                 raise ValueError("Checksum verification failed")
+            else:
+                self.logger.info("Checksum verification successful")
 
             return {
                 "id": sensor_id,
-                # "id": socket.ntohs(sensor_id),  # Convert to host byte order
                 "temperature": temp / 100.0,
                 "pressure": press / 100.0,
                 "humidity": hum / 100.0,
