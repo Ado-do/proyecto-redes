@@ -6,13 +6,13 @@
 
 **Curso**: Redes de Computadores
 
-## **Introducción**
+## **1. Introducción**
 
 Los sistemas distribuidos y el Internet de las Cosas (IoT) son fundamentales en entornos industriales modernos, ya que permiten monitorear y controlar procesos en tiempo real, mejorando la eficiencia y seguridad. Este proyecto busca implementar un sistema distribuido que simule un entorno IoT industrial, integrando componentes escritos en C++ y Python para la transmisión, almacenamiento y visualización de datos de sensores (temperatura, presión y humedad).
 
 El propósito es demostrar cómo un sistema heterogéneo puede comunicarse de manera segura, garantizando la integridad de los datos mediante cifrado y verificaciones de checksum, además de proporcionar una interfaz para visualización y alertas.
 
-## **Descripción del Problema**
+## **2. Descripción del Problema**
 
 En entornos industriales, es crucial recolectar y analizar datos de sensores de manera confiable. Sin embargo, existen desafíos como:
 
@@ -27,13 +27,13 @@ Este proyecto aborda estos problemas mediante un sistema distribuido con:
 - Un **servidor final con API REST** para almacenamiento y visualización web.
 - Un **cliente de consulta** que detecta anomalías.
 
-## **Objetivos**
+## **3. Objetivos**
 
-### **Objetivo General**
+### **3.1. Objetivo General**
 
 Diseñar e implementar un sistema distribuido seguro para el monitoreo industrial, integrando sensores simulados, procesamiento intermedio, almacenamiento persistente y visualización.
 
-### **Objetivos Específicos**
+### **3.2. Objetivos Específicos**
 
 1. **Cliente en C++**:
 
@@ -58,9 +58,9 @@ Diseñar e implementar un sistema distribuido seguro para el monitoreo industria
 5. **Visualización Web**:
    - Mostrar métricas en tiempo real mediante un [dashboard](http://localhost:8000/api/dashboard).
 
-## **Metodología**
+## **4. Metodología**
 
-### **Arquitectura del Sistema**
+### **4.1. Arquitectura del Sistema**
 
 El sistema sigue este flujo:
 
@@ -77,7 +77,7 @@ El sistema sigue este flujo:
 3. **Cliente de Consulta**
    - Consulta la API cada 10 segundos y alerta sobre anomalías.
 
-### **Implementación de Componentes**
+### **4.2. Implementación de Componentes**
 
 #### **Cliente Sensor (C++)**
 
@@ -116,13 +116,13 @@ El sistema sigue este flujo:
       print(f"ALERTA: Temperatura fuera de rango: {temperatura}°C")
   ```
 
-### **Comunicación entre Componentes**
+### **4.3. Comunicación entre Componentes**
 
 - **TCP + TLS**: Usado entre C++ y Python (servidor intermedio).
 - **HTTP/REST**: Para comunicación textual (servidor intermedio → final).
 - **Protocolos Industriales**: Se consideró añadir Modbus, pero se priorizó TLS por simplicidad.
 
-## **Resultados**
+## **5. Resultados**
 
 - **Funcionamiento del Sistema**:
 
@@ -138,14 +138,14 @@ El sistema sigue este flujo:
   - Dashboard:
   ![Dashboard](./img/dashboard.jpeg) _(Gráficos de temperatura, presión y humedad en tiempo real)_.
 
-## **Conclusiones y Trabajo Futuro**
+## **6. Conclusiones y Trabajo Futuro**
 
-### **Conclusiones**
+### **6.1. Conclusiones**
 
 - Se logró un sistema funcional con comunicación segura (TLS) y validación de integridad (checksum CRC-16).
 - La arquitectura distribuida demostró ser escalable para entornos industriales.
 
-### **Trabajo Futuro**
+### **6.2. Trabajo Futuro**
 
 1. **Protocolos Industriales**: Implementar Modbus o OPC UA para mayor compatibilidad.
 2. **Mayor Robustez**:
