@@ -8,28 +8,78 @@ Sistema distribuido IoT para monitoreo industrial con clientes C++, servidores P
 
 ### Requerimientos
 
-- Compilador C++ (GNU g++)
-  - Librería OpenSSL
+- Linux
+- Compilador C++, librería OpenSSL, GNU Make y git.
+- Python 3.11+
+- Librería OpenSSL
 - GNU Make
-- Python 3.9+
-  - Librerias: `pip install fastapi uvicorn sqlite requests crcmod`
+- Git
+
+> [!TIP]
+> Puedes instalar todos utilizando:
+>
+> - En Debian/Ubuntu: `sudo apt install g++ make git python3 libssl-dev`
+> - En Red Hat/Fedora: `sudo dnf install gcc-c++ make git python3 openssl-devel`
 
 ### Comandos
 
-```bash
-# Generar certificados
-./gen_certs.bash
+Para probar cada parte del proyecto, primero necesitaras clonar y configurar el repositorio:
 
-# Compilar y ejecutar cliente
-make -C client/
-./client/build/sensor_client
+```bash
+# Clonar repositorio
+git clone https://github.com/Ado-do/proyecto-redes
+
+# Acceder a repo
+cd proyecto-redes/
+
+# Generar certificados TLS
+./gen_tls_certs.sh
+
+# Recrear python virtual environment
+./setup_venv.sh
+```
+
+Luego, necesitaras 4 terminales abiertas para ejecutar cada modulo del proyecto:
+
+**Terminal 1**: Ejecutar servidor final:
+
+```bash
+# Activar python venv
+source .venv/bin/activate
+
+# Ejecutar servidor final
+uvicorn final_server.main:app
+
+# Visualizar datos enviados en navegador
+xdg-open http://localhost:8000/api/dashboard
+```
+
+**Terminal 2**: Ejecutar servidor medio
+
+```bash
+# Activar python venv
+source .venv/bin/activate
 
 # Ejecutar servidor medio
 python ./mid_server/main.py
+```
 
-# Ejecutar servidor final (http://localhost:8000/api/dashboard)
-uvicorn final_server.main:app
+**Terminal 3**: Ejecutar cliente de consultas
 
-# Ejecutar cliente de consulta
+```bash
+# Activar python venv
+source .venv/bin/activate
+
+# Ejecutar cliente de consultas
 python ./query_client/main.py
+```
+
+**Terminal 4**: Ejecutar cliente de sensor (enviar datos de prueba de sensores) y visualizar resultados
+
+```bash
+# Compilar código de cliente sensor
+make -C client/
+
+# Enviar datos de sensor al servidor medio cada 5 segundos
+watch -n 5 ./client/build/sensor_client
 ```
