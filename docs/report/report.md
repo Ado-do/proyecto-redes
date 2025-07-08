@@ -6,13 +6,13 @@
 
 **Curso**: Redes de Computadores
 
-## **1. Introducción**
+## **Introducción**
 
 Los sistemas distribuidos y el Internet de las Cosas (IoT) son fundamentales en entornos industriales modernos, ya que permiten monitorear y controlar procesos en tiempo real, mejorando la eficiencia y seguridad. Este proyecto busca implementar un sistema distribuido que simule un entorno IoT industrial, integrando componentes escritos en C++ y Python para la transmisión, almacenamiento y visualización de datos de sensores (temperatura, presión y humedad).
 
 El propósito es demostrar cómo un sistema heterogéneo puede comunicarse de manera segura, garantizando la integridad de los datos mediante cifrado y verificaciones de checksum, además de proporcionar una interfaz para visualización y alertas.
 
-## **2. Descripción del Problema**
+## **Descripción del Problema**
 
 En entornos industriales, es crucial recolectar y analizar datos de sensores de manera confiable. Sin embargo, existen desafíos como:
 
@@ -27,13 +27,13 @@ Este proyecto aborda estos problemas mediante un sistema distribuido con:
 - Un **servidor final con API REST** para almacenamiento y visualización web.
 - Un **cliente de consulta** que detecta anomalías.
 
-## **3. Objetivos**
+## **Objetivos**
 
-### **3.1. Objetivo General**
+### **Objetivo General**
 
 Diseñar e implementar un sistema distribuido seguro para el monitoreo industrial, integrando sensores simulados, procesamiento intermedio, almacenamiento persistente y visualización.
 
-### **3.2. Objetivos Específicos**
+### **Objetivos Específicos**
 
 1. **Cliente en C++**:
 
@@ -58,9 +58,9 @@ Diseñar e implementar un sistema distribuido seguro para el monitoreo industria
 5. **Visualización Web**:
    - Mostrar métricas en tiempo real mediante un [dashboard](http://localhost:8000/api/dashboard).
 
-## **4. Metodología**
+## **Metodología**
 
-### **4.1. Arquitectura del Sistema**
+### **Arquitectura del Sistema**
 
 El sistema sigue este flujo:
 
@@ -77,7 +77,7 @@ El sistema sigue este flujo:
 3. **Cliente de Consulta**
    - Consulta la API cada 10 segundos y alerta sobre anomalías.
 
-### **4.2. Implementación de Componentes**
+### **Implementación de Componentes**
 
 #### **Cliente Sensor (C++)**
 
@@ -94,6 +94,7 @@ El sistema sigue este flujo:
 #### **Servidor Final (FastAPI)**
 
 - Almacena datos en SQLite:
+
   ```sql
   CREATE TABLE sensor_data (
       id INTEGER,
@@ -104,6 +105,7 @@ El sistema sigue este flujo:
       PRIMARY KEY (id, timestamp)
   )
   ```
+
 - API REST:
   - `POST /data`: Guarda nuevos datos.
   - `GET /readings`: Devuelve los últimos 100 registros.
@@ -111,18 +113,19 @@ El sistema sigue este flujo:
 #### **Cliente de Consulta**
 
 - Verifica rangos seguros:
+
   ```python
   if not (TEMP_MIN <= temperatura <= TEMP_MAX):
       print(f"ALERTA: Temperatura fuera de rango: {temperatura}°C")
   ```
 
-### **4.3. Comunicación entre Componentes**
+### **Comunicación entre Componentes**
 
 - **TCP + TLS**: Usado entre C++ y Python (servidor intermedio).
 - **HTTP/REST**: Para comunicación textual (servidor intermedio → final).
 - **Protocolos Industriales**: Se consideró añadir Modbus, pero se priorizó TLS por simplicidad.
 
-## **5. Resultados**
+## **Resultados**
 
 - **Funcionamiento del Sistema**:
 
@@ -130,22 +133,26 @@ El sistema sigue este flujo:
   - El servidor intermedio valida y reenvía al servidor final.
   - El cliente consultor accede la API REST para leer ultimas lecturas y alertar en caso de fuera de rangos predefinidos.
 
+- Repositorio Github con todo el código: [link del repositorio](https://github.com/Ado-do/proyecto-redes)
+
+- Instrucciones de uso: [archivo README.md](./../../README.md)
+
 - **Visualización**:
 
   - Componentes:
-  ![Componentes](./img/components.png) _(Logs en terminal de servidores final/medio y clientes sensor/consultor)_.
+    ![Componentes](./img/components.png) _(Logs en terminal de servidores final/medio y clientes sensor/consultor)_.
 
   - Dashboard:
-  ![Dashboard](./img/dashboard.jpeg) _(Gráficos de temperatura, presión y humedad en tiempo real)_.
+    ![Dashboard](./img/dashboard.jpeg) _(Gráficos de temperatura, presión y humedad en tiempo real)_.
 
-## **6. Conclusiones y Trabajo Futuro**
+## **Conclusiones y Trabajo Futuro**
 
-### **6.1. Conclusiones**
+### **Conclusiones**
 
 - Se logró un sistema funcional con comunicación segura (TLS) y validación de integridad (checksum CRC-16).
 - La arquitectura distribuida demostró ser escalable para entornos industriales.
 
-### **6.2. Trabajo Futuro**
+### **Trabajo Futuro**
 
 1. **Protocolos Industriales**: Implementar Modbus o OPC UA para mayor compatibilidad.
 2. **Mayor Robustez**:
