@@ -11,15 +11,15 @@ Sistema distribuido IoT para monitoreo industrial con clientes C++, servidores P
 - Linux
 - Compilador C++
 - Python 3.11+
-- Librería OpenSSL
+- Librerías OpenSSL
 - GNU Make
 - Git
 
 > [!TIP]
 > Puedes instalar todos utilizando:
 >
-> - En Debian/Ubuntu: `sudo apt install g++ make git python3 libssl-dev`
-> - En Red Hat/Fedora: `sudo dnf install gcc-c++ make git python3 openssl-devel`
+> - En Debian/Ubuntu: `sudo apt install g++ make git python3 openssl libssl-dev`
+> - En Red Hat/Fedora: `sudo dnf install gcc-c++ make git python3 openssl openssl-devel`
 
 ### Comandos
 
